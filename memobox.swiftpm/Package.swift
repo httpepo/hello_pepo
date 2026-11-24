@@ -19,7 +19,7 @@ let package = Package(
             bundleIdentifier: "appledeveloperacademy.hello-pepo",
             teamIdentifier: "2QB643XL72",
             displayVersion: "1.0",
-            bundleVersion: "1",
+            bundleVersion: "3",
             appIcon: .asset("AppIcon"),
             accentColor: .presetColor(.brown),
             supportedDeviceFamilies: [
@@ -33,7 +33,7 @@ let package = Package(
                 .portraitUpsideDown(.when(deviceFamilies: [.pad]))
             ],
             capabilities: [
-                .camera(purposeString: "Scan objects")
+                .camera(purposeString: "Pepo’s MemoBox uses the camera to recognize the printed memory marker and place that chapter’s 3D memory on top of it in augmented reality. Camera images are not saved or shared.")
             ],
             additionalInfoPlistContentFilePath: "AdditionalInfo.plist"
         )
