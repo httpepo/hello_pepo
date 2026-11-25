@@ -5,20 +5,20 @@
 //  Created by Pedro Henrique Sudario da Silva on 19/04/25.
 //
 
-import SwiftUI
 import ARKit
 import Photos
+import SwiftUI
 
 @MainActor
 struct ARImageTrackingViewRepresentable: UIViewControllerRepresentable {
     let modelName: String
     let modelSound: String
 
-    func makeUIViewController(context: Context) -> ARImageTrackingViewController {
+    func makeUIViewController(context _: Context) -> ARImageTrackingViewController {
         ARImageTrackingViewController(modelName: modelName, modelSound: modelSound)
     }
 
-    func updateUIViewController(_ uiViewController: ARImageTrackingViewController, context: Context) {}
+    func updateUIViewController(_: ARImageTrackingViewController, context _: Context) {}
 }
 
 @MainActor
@@ -35,7 +35,8 @@ class ARImageTrackingViewController: UIViewController, ARSCNViewDelegate {
         super.init(nibName: nil, bundle: nil)
     }
 
-    required init?(coder: NSCoder) {
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
@@ -68,12 +69,12 @@ class ARImageTrackingViewController: UIViewController, ARSCNViewDelegate {
         sceneView.session.pause()
     }
 
-    nonisolated func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
+    nonisolated func renderer(_: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
         guard anchor is ARImageAnchor else { return }
         handleImageAnchor(modelName: modelName, node: node)
     }
 
-    nonisolated private func handleImageAnchor(modelName: String, node: SCNNode) {
+    private nonisolated func handleImageAnchor(modelName: String, node: SCNNode) {
         guard
             let url = Bundle.main.url(forResource: modelName, withExtension: "usdz"),
             let scene = try? SCNScene(url: url),
@@ -81,9 +82,9 @@ class ARImageTrackingViewController: UIViewController, ARSCNViewDelegate {
         else { return }
 
         let (minVec, maxVec) = modelNode.boundingBox
-        let center = SCNVector3((maxVec.x + minVec.x)/2,
-                                 (maxVec.y + minVec.y)/2,
-                                 (maxVec.z + minVec.z)/2)
+        let center = SCNVector3((maxVec.x + minVec.x) / 2,
+                                (maxVec.y + minVec.y) / 2,
+                                (maxVec.z + minVec.z) / 2)
         modelNode.pivot = SCNMatrix4MakeTranslation(center.x, center.y, center.z)
         let size = maxVec - minVec
         let largest = max(size.x, size.y, size.z)
@@ -126,7 +127,7 @@ class ARImageTrackingViewController: UIViewController, ARSCNViewDelegate {
             markerOptionsButton.widthAnchor.constraint(equalToConstant: 60),
             markerOptionsButton.heightAnchor.constraint(equalToConstant: 60),
             soundButton.widthAnchor.constraint(equalToConstant: 60),
-            soundButton.heightAnchor.constraint(equalToConstant: 60),
+            soundButton.heightAnchor.constraint(equalToConstant: 60)
         ])
     }
 
@@ -154,33 +155,20 @@ class ARImageTrackingViewController: UIViewController, ARSCNViewDelegate {
             return
         }
 
-        let current = PHPhotoLibrary.authorizationStatus(for: .addOnly)
-        if current == .notDetermined {
-            PHPhotoLibrary.requestAuthorization(for: .addOnly) { [weak self] status in
-                DispatchQueue.main.async {
-                    self?.applyPhotoAuthorizationStatus(status, image: image)
-                }
-            }
-        } else {
-            applyPhotoAuthorizationStatus(current, image: image)
+        Task {
+            let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+            await applyPhotoAuthorizationStatus(status, image: image)
         }
     }
 
-    private func applyPhotoAuthorizationStatus(_ status: PHAuthorizationStatus, image: UIImage) {
+    private func applyPhotoAuthorizationStatus(_ status: PHAuthorizationStatus, image: UIImage) async {
         switch status {
         case .authorized, .limited:
-            PHPhotoLibrary.shared().performChanges({
-                PHAssetChangeRequest.creationRequestForAsset(from: image)
-            }) { success, error in
-                DispatchQueue.main.async { [weak self] in
-                    guard let self else { return }
-                    if success {
-                        self.presentSimpleAlert(title: "Saved", message: "The marker was saved to Photos.")
-                    } else {
-                        let msg = error?.localizedDescription ?? "Unknown error"
-                        self.presentSimpleAlert(title: "Could not save", message: msg)
-                    }
-                }
+            do {
+                try await Self.addToPhotoLibrary(image)
+                presentSimpleAlert(title: "Saved", message: "The marker was saved to Photos.")
+            } catch {
+                presentSimpleAlert(title: "Could not save", message: error.localizedDescription)
             }
         case .denied, .restricted:
             presentSimpleAlert(
@@ -191,6 +179,12 @@ class ARImageTrackingViewController: UIViewController, ARSCNViewDelegate {
             presentSimpleAlert(title: "Photos", message: "Photo library access was not determined.")
         @unknown default:
             presentSimpleAlert(title: "Photos", message: "Could not access the photo library.")
+        }
+    }
+
+    private nonisolated static func addToPhotoLibrary(_ image: UIImage) async throws {
+        try await PHPhotoLibrary.shared().performChanges {
+            PHAssetChangeRequest.creationRequestForAsset(from: image)
         }
     }
 
@@ -242,7 +236,8 @@ class ARImageTrackingViewController: UIViewController, ARSCNViewDelegate {
             super.init(nibName: nil, bundle: nil)
         }
 
-        required init?(coder: NSCoder) {
+        @available(*, unavailable)
+        required init?(coder _: NSCoder) {
             fatalError("init(coder:) has not been implemented")
         }
 
@@ -316,7 +311,7 @@ class ARImageTrackingViewController: UIViewController, ARSCNViewDelegate {
                 imageView.topAnchor.constraint(equalTo: imageContainer.topAnchor, constant: 12),
                 imageView.leadingAnchor.constraint(equalTo: imageContainer.leadingAnchor, constant: 12),
                 imageView.trailingAnchor.constraint(equalTo: imageContainer.trailingAnchor, constant: -12),
-                imageView.bottomAnchor.constraint(equalTo: imageContainer.bottomAnchor, constant: -12),
+                imageView.bottomAnchor.constraint(equalTo: imageContainer.bottomAnchor, constant: -12)
             ])
 
             let saveButton = UIButton(configuration: .filled())
@@ -360,13 +355,12 @@ class ARImageTrackingViewController: UIViewController, ARSCNViewDelegate {
                 rootStack.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor),
 
                 imageContainer.leadingAnchor.constraint(equalTo: rootStack.layoutMarginsGuide.leadingAnchor),
-                imageContainer.trailingAnchor.constraint(equalTo: rootStack.layoutMarginsGuide.trailingAnchor),
+                imageContainer.trailingAnchor.constraint(equalTo: rootStack.layoutMarginsGuide.trailingAnchor)
             ])
         }
-
     }
 }
 
-fileprivate func -(lhs: SCNVector3, rhs: SCNVector3) -> SCNVector3 {
+private func - (lhs: SCNVector3, rhs: SCNVector3) -> SCNVector3 {
     SCNVector3(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z)
 }
